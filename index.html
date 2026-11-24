@@ -1,0 +1,456 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>My Personal Playlist — SoundCloud & Spotify</title>
+  <script src="https://w.soundcloud.com/player/api.js"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: system-ui, -apple-system, sans-serif; }
+    body {
+      background: #090d16;
+      color: #f1f5f9;
+      min-height: 100vh;
+      padding: 20px 14px 40px;
+      display: flex;
+      justify-content: center;
+    }
+    .app {
+      width: 100%;
+      max-width: 780px;
+      background: #111827;
+      border: 1px solid #1f2937;
+      border-radius: 20px;
+      padding: 20px;
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.45);
+    }
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-bottom: 18px;
+    }
+    h1 { font-size: 20px; font-weight: 700; color: #fff; }
+    .badge {
+      font-size: 12px;
+      padding: 4px 10px;
+      border-radius: 999px;
+      background: #1e293b;
+      color: #38bdf8;
+      border: 1px solid #334155;
+    }
+    .add-box {
+      display: grid;
+      grid-template-columns: 1fr 1.4fr auto;
+      gap: 8px;
+      margin-bottom: 16px;
+    }
+    @media (max-width: 640px) {
+      .add-box { grid-template-columns: 1fr; }
+    }
+    input, select {
+      background: #0f172a;
+      border: 1px solid #334155;
+      color: #f8fafc;
+      padding: 10px 12px;
+      border-radius: 10px;
+      font-size: 14px;
+      outline: none;
+    }
+    input:focus, select:focus { border-color: #3b82f6; }
+    button {
+      border: none;
+      border-radius: 10px;
+      padding: 10px 14px;
+      font-size: 13.5px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: opacity 0.15s, transform 0.1s;
+    }
+    button:active { transform: scale(0.98); }
+    .btn-add { background: #2563eb; color: #fff; }
+    .controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+      margin-bottom: 16px;
+      padding: 12px;
+      background: #0f172a;
+      border-radius: 14px;
+      border: 1px solid #1e293b;
+    }
+    .btn-ctrl { background: #1e293b; color: #e2e8f0; border: 1px solid #334155; }
+    .btn-ctrl.active { background: #0284c7; color: #fff; border-color: #0284c7; }
+    .timer-group {
+      margin-left: auto;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+    @media (max-width: 640px) { .timer-group { margin-left: 0; width: 100%; } }
+    .timer-status {
+      font-size: 12.5px;
+      color: #fbbf24;
+      font-weight: 600;
+    }
+    .player-stage {
+      background: #020617;
+      border: 1px solid #1e293b;
+      border-radius: 14px;
+      overflow: hidden;
+      margin-bottom: 18px;
+      min-height: 166px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    iframe { width: 100%; border: none; display: block; }
+    .now-playing {
+      font-size: 13px;
+      color: #94a3b8;
+      margin-bottom: 10px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .playlist {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      max-height: 340px;
+      overflow-y: auto;
+    }
+    .track {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 10px 12px;
+      background: #0f172a;
+      border: 1px solid #1e293b;
+      border-radius: 12px;
+      cursor: pointer;
+    }
+    .track:hover { border-color: #3b82f6; }
+    .track.playing {
+      border-color: #38bdf8;
+      background: #132238;
+    }
+    .track-info { display: flex; align-items: center; gap: 10px; overflow: hidden; }
+    .tag {
+      font-size: 11px;
+      font-weight: 700;
+      padding: 3px 7px;
+      border-radius: 6px;
+      text-transform: uppercase;
+      flex-shrink: 0;
+    }
+    .tag-sc { background: rgba(255, 85, 0, 0.18); color: #ff6a00; }
+    .tag-sp { background: rgba(30, 215, 96, 0.18); color: #1ed760; }
+    .track-title {
+      font-size: 14px;
+      font-weight: 500;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .btn-del {
+      background: transparent;
+      color: #64748b;
+      padding: 4px 8px;
+      font-size: 14px;
+    }
+    .btn-del:hover { color: #f87171; }
+    .tip {
+      margin-top: 16px;
+      font-size: 12px;
+      color: #94a3b8;
+      line-height: 1.5;
+      background: #0f172a;
+      padding: 10px 12px;
+      border-radius: 10px;
+      border: 1px solid #1e293b;
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <header>
+      <h1>🎧 Playlist Cá Nhân</h1>
+      <span class="badge" id="trackCount">0 bài hát</span>
+    </header>
+
+    <div class="add-box">
+      <input id="songTitle" type="text" placeholder="Tên bài hát (tùy chọn)..." />
+      <input id="songUrl" type="text" placeholder="Dán link SoundCloud hoặc Spotify..." />
+      <button class="btn-add" onclick="addTrack()">+ Thêm bài</button>
+    </div>
+
+    <div class="controls">
+      <button class="btn-ctrl" onclick="prevTrack()">⏮ Trước</button>
+      <button class="btn-ctrl" onclick="nextTrack()">⏭ Tiếp</button>
+      <button class="btn-ctrl" id="shuffleBtn" onclick="toggleShuffle()">🔀 Đảo bài: TẮT</button>
+
+      <div class="timer-group">
+        <select id="sleepSelect" onchange="setSleepTimer()">
+          <option value="0">⏰ Hẹn giờ tắt: Tắt</option>
+          <option value="15">15 phút</option>
+          <option value="30">30 phút</option>
+          <option value="45">45 phút</option>
+          <option value="60">60 phút</option>
+          <option value="90">90 phút</option>
+        </select>
+        <span class="timer-status" id="timerDisplay"></span>
+      </div>
+    </div>
+
+    <div class="now-playing">
+      <span id="nowPlayingText">Chọn một bài hát bên dưới để phát</span>
+    </div>
+
+    <div class="player-stage" id="playerStage">
+      <span style="color:#64748b; font-size:14px;">Chưa có bài hát nào đang phát</span>
+    </div>
+
+    <ul class="playlist" id="playlistEl"></ul>
+
+    <div class="tip">
+      <strong>Mẹo chạy nền khi tắt màn hình:</strong> Khi khóa màn hình điện thoại, bấm nút <strong>Phát (Play)</strong> trên bảng điều khiển màn hình khóa nếu trình duyệt tạm dừng. Với SoundCloud, web tự động chuyển bài kế tiếp và tự dừng hẳn khi hết giờ hẹn tắt.
+    </div>
+  </div>
+
+  <script>
+    const STORAGE_KEY = "my_sc_sp_playlist_v1";
+
+    const DEFAULT_TRACKS = [
+      {
+        id: 1,
+        title: "Nhạc Chill Lofi (Mẫu SoundCloud)",
+        platform: "soundcloud",
+        url: "https://soundcloud.com/lofi_girl/sets/lofi-hip-hop-music-beats-to"
+      },
+      {
+        id: 2,
+        title: "Playlist Mẫu Spotify",
+        platform: "spotify",
+        url: "https://open.spotify.com/track/4cOdK2wGLETKBW3PvgPWqT"
+      }
+    ];
+
+    let tracks = JSON.parse(localStorage.getItem(STORAGE_KEY) || "null") || DEFAULT_TRACKS;
+    let currentIndex = -1;
+    let isShuffle = false;
+    let scWidget = null;
+    let sleepInterval = null;
+    let sleepEndTime = null;
+
+    function saveTracks() {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(tracks));
+      renderPlaylist();
+    }
+
+    function detectPlatform(url) {
+      if (/soundcloud\.com|on\.soundcloud\.com/i.test(url)) return "soundcloud";
+      if (/open\.spotify\.com/i.test(url)) return "spotify";
+      return null;
+    }
+
+    function addTrack() {
+      const urlInput = document.getElementById("songUrl");
+      const titleInput = document.getElementById("songTitle");
+      const rawUrl = urlInput.value.trim();
+      const platform = detectPlatform(rawUrl);
+
+      if (!platform) {
+        alert("Vui lòng dán đường dẫn hợp lệ từ SoundCloud hoặc Spotify (open.spotify.com).");
+        return;
+      }
+
+      const title = titleInput.value.trim() || `${platform === "soundcloud" ? "SoundCloud" : "Spotify"} Track #${tracks.length + 1}`;
+      tracks.push({
+        id: Date.now(),
+        title,
+        platform,
+        url: rawUrl
+      });
+
+      urlInput.value = "";
+      titleInput.value = "";
+      saveTracks();
+    }
+
+    function removeTrack(e, idx) {
+      e.stopPropagation();
+      tracks.splice(idx, 1);
+      if (idx === currentIndex) {
+        currentIndex = -1;
+        document.getElementById("playerStage").innerHTML = '<span style="color:#64748b; font-size:14px;">Đã xóa bài đang phát</span>';
+      } else if (idx < currentIndex) {
+        currentIndex -= 1;
+      }
+      saveTracks();
+    }
+
+    function renderPlaylist() {
+      const list = document.getElementById("playlistEl");
+      document.getElementById("trackCount").textContent = `${tracks.length} bài hát`;
+      list.innerHTML = "";
+
+      tracks.forEach((item, idx) => {
+        const li = document.createElement("li");
+        li.className = "track" + (idx === currentIndex ? " playing" : "");
+        li.onclick = () => playTrack(idx);
+
+        const tagClass = item.platform === "soundcloud" ? "tag-sc" : "tag-sp";
+        const tagLabel = item.platform === "soundcloud" ? "SoundCloud" : "Spotify";
+
+        li.innerHTML = `
+          <div class="track-info">
+            <span class="tag ${tagClass}">${tagLabel}</span>
+            <span class="track-title">${escapeHtml(item.title)}</span>
+          </div>
+          <button class="btn-del" title="Xóa bài" onclick="removeTrack(event, ${idx})">✕</button>
+        `;
+        list.appendChild(li);
+      });
+    }
+
+    function escapeHtml(str) {
+      return str.replace(/[&<>"']/g, m => ({
+        "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
+      }[m]));
+    }
+
+    function toSpotifyEmbed(url) {
+      try {
+        const u = new URL(url);
+        const cleanPath = u.pathname.replace(/^\/intl-[a-z-]+/i, "");
+        return `https://open.spotify.com/embed${cleanPath}?utm_source=generator&theme=0`;
+      } catch {
+        return url;
+      }
+    }
+
+    function playTrack(idx) {
+      if (idx < 0 || idx >= tracks.length) return;
+      currentIndex = idx;
+      const track = tracks[idx];
+      const stage = document.getElementById("playerStage");
+      scWidget = null;
+
+      document.getElementById("nowPlayingText").textContent = `Đang phát: ${track.title}`;
+      updateMediaSession(track);
+      renderPlaylist();
+
+      if (track.platform === "soundcloud") {
+        const encoded = encodeURIComponent(track.url);
+        stage.innerHTML = `<iframe id="scFrame" height="166" allow="autoplay" src="https://w.soundcloud.com/player/?url=${encoded}&color=%230068ff&auto_play=true&hide_related=true&show_comments=false&show_user=true&show_reposts=false&show_teaser=false"></iframe>`;
+        const iframe = document.getElementById("scFrame");
+        scWidget = SC.Widget(iframe);
+        scWidget.bind(SC.Widget.Events.READY, () => {
+          scWidget.play();
+        });
+        scWidget.bind(SC.Widget.Events.FINISH, () => {
+          nextTrack();
+        });
+      } else {
+        const embedUrl = toSpotifyEmbed(track.url);
+        stage.innerHTML = `<iframe height="152" src="${embedUrl}" allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" loading="lazy"></iframe>`;
+      }
+    }
+
+    function toggleShuffle() {
+      isShuffle = !isShuffle;
+      const btn = document.getElementById("shuffleBtn");
+      btn.classList.toggle("active", isShuffle);
+      btn.textContent = isShuffle ? "🔀 Đảo bài: BẬT" : "🔀 Đảo bài: TẮT";
+    }
+
+    function nextTrack() {
+      if (!tracks.length) return;
+      if (isShuffle && tracks.length > 1) {
+        let randIdx;
+        do {
+          randIdx = Math.floor(Math.random() * tracks.length);
+        } while (randIdx === currentIndex);
+        playTrack(randIdx);
+      } else {
+        playTrack((currentIndex + 1) % tracks.length);
+      }
+    }
+
+    function prevTrack() {
+      if (!tracks.length) return;
+      const prevIdx = (currentIndex - 1 + tracks.length) % tracks.length;
+      playTrack(prevIdx);
+    }
+
+    function stopPlayback() {
+      if (scWidget) {
+        try { scWidget.pause(); } catch {}
+      }
+      document.getElementById("playerStage").innerHTML = '<span style="color:#fbbf24; font-size:14px;">⏰ Đã tự động tắt nhạc theo hẹn giờ</span>';
+      document.getElementById("nowPlayingText").textContent = "Đã dừng phát nhạc";
+    }
+
+    function setSleepTimer() {
+      clearInterval(sleepInterval);
+      const mins = Number(document.getElementById("sleepSelect").value);
+      const display = document.getElementById("timerDisplay");
+
+      if (!mins) {
+        sleepEndTime = null;
+        display.textContent = "";
+        return;
+      }
+
+      sleepEndTime = Date.now() + mins * 60 * 1000;
+      updateTimerLabel();
+      sleepInterval = setInterval(updateTimerLabel, 1000);
+    }
+
+    function updateTimerLabel() {
+      const display = document.getElementById("timerDisplay");
+      if (!sleepEndTime) return;
+      const leftMs = sleepEndTime - Date.now();
+      if (leftMs <= 0) {
+        clearInterval(sleepInterval);
+        sleepEndTime = null;
+        document.getElementById("sleepSelect").value = "0";
+        display.textContent = "Đã tắt nhạc";
+        stopPlayback();
+        return;
+      }
+      const totalSec = Math.ceil(leftMs / 1000);
+      const m = String(Math.floor(totalSec / 60)).padStart(2, "0");
+      const s = String(totalSec % 60).padStart(2, "0");
+      display.textContent = `Tắt sau ${m}:${s}`;
+    }
+
+    function updateMediaSession(track) {
+      if ("mediaSession" in navigator) {
+        navigator.mediaSession.metadata = new MediaMetadata({
+          title: track.title,
+          artist: track.platform === "soundcloud" ? "SoundCloud" : "Spotify",
+          album: "Playlist Cá Nhân"
+        });
+        navigator.mediaSession.setActionHandler("previoustrack", prevTrack);
+        navigator.mediaSession.setActionHandler("nexttrack", nextTrack);
+        navigator.mediaSession.setActionHandler("play", () => {
+          if (scWidget) scWidget.play();
+        });
+        navigator.mediaSession.setActionHandler("pause", () => {
+          if (scWidget) scWidget.pause();
+        });
+      }
+    }
+
+    renderPlaylist();
+  </script>
+</body>
+</html>
